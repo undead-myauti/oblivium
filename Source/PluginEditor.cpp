@@ -223,16 +223,19 @@ void ObliviumAudioProcessorEditor::drawPedal (juce::Graphics& g) const
     g.fillPath (enclosure);
 
     {
-        // Brushed finish and vignette, kept inside the enclosure.
+        // Black marble with gold cracks, kept inside the enclosure.
         juce::Graphics::ScopedSaveState state (g);
         g.reduceClipRegion (enclosure);
 
-        juce::Random random (0x0b11);
-        for (auto y = enclosureArea.getY(); y < enclosureArea.getBottom(); y += 1.0f)
-        {
-            g.setColour (juce::Colours::white.withAlpha (random.nextFloat() * 0.022f));
-            g.fillRect (enclosureArea.getX(), y, enclosureArea.getWidth(), 0.6f);
-        }
+        g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
+        g.drawImage (marble->image, enclosureArea);
+
+        // Light falls from the top of the pedal.
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.05f), 0.0f, enclosureArea.getY(),
+                                                 juce::Colours::transparentWhite, 0.0f, enclosureArea.getCentreY(), false));
+        g.fillPath (enclosure);
+
+        oblivium::ui::drawGoldCracks (g);
 
         const auto centre = enclosureArea.getCentre().translated (0.0f, -60.0f);
         g.setGradientFill (juce::ColourGradient (juce::Colours::transparentBlack, centre.x, centre.y,

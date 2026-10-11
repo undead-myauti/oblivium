@@ -2,6 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "UI/InputDeviceSelector.h"
+#include "UI/Marble.h"
 #include "UI/ObliviumLookAndFeel.h"
 #include "UI/Widgets.h"
 
@@ -27,6 +28,7 @@ private:
 
     ObliviumAudioProcessor& audioProcessor;
     oblivium::ui::ObliviumLookAndFeel lookAndFeel;
+    juce::SharedResourcePointer<oblivium::ui::MarbleTexture> marble;
 
     oblivium::ui::LabelledKnob input { "INPUT" }, drive { "DRIVE", true }, output { "OUTPUT" };
     oblivium::ui::LabelledKnob bass { "BASS" }, mid { "MID" }, treble { "TREBLE" }, mix { "MIX" };
