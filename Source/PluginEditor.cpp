@@ -1,6 +1,12 @@
 #include "PluginEditor.h"
 #include "Parameters.h"
 
+#if defined (JucePlugin_Build_Standalone) && JucePlugin_Build_Standalone
+ #include <juce_audio_utils/juce_audio_utils.h>
+ #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
+ #define OBLIVIUM_HAS_STANDALONE 1
+#endif
+
 namespace ids = oblivium::params;
 namespace colours = oblivium::ui::colours;
 
@@ -27,6 +33,7 @@ namespace
     constexpr float taglineY = 474.0f;
     const juce::Rectangle<float> ledArea { 205.0f, 497.0f, 30.0f, 30.0f };
     const juce::Rectangle<float> footswitchArea { 172.0f, 534.0f, 96.0f, 96.0f };
+    const juce::Rectangle<float> inputDeviceArea { 115.0f, 20.0f, 210.0f, 22.0f };
 
     juce::Rectangle<float> toneKnobArea (float centreX)
     {
@@ -81,6 +88,17 @@ ObliviumAudioProcessorEditor::ObliviumAudioProcessorEditor (ObliviumAudioProcess
     outputMeter.setTitle ("Output level");
     addAndMakeVisible (inputMeter);
     addAndMakeVisible (outputMeter);
+
+   #if OBLIVIUM_HAS_STANDALONE
+    if (audioProcessor.wrapperType == juce::AudioProcessor::wrapperType_Standalone)
+    {
+        if (auto* holder = juce::StandalonePluginHolder::getInstance())
+        {
+            inputDeviceSelector = std::make_unique<oblivium::ui::InputDeviceSelector> (holder->deviceManager);
+            addAndMakeVisible (*inputDeviceSelector);
+        }
+    }
+   #endif
 
     footswitch.onClick = [this] { bypassAttachment->setValueAsCompleteGesture (engaged ? 1.0f : 0.0f); };
     addAndMakeVisible (footswitch);
@@ -157,6 +175,9 @@ void ObliviumAudioProcessorEditor::resized()
     place (inputMeter, inputMeterArea);
     place (outputMeter, outputMeterArea);
     place (led, ledArea);
+
+    if (inputDeviceSelector != nullptr)
+        place (*inputDeviceSelector, inputDeviceArea);
     place (footswitch, footswitchArea);
 
     background = {};
@@ -247,12 +268,6 @@ void ObliviumAudioProcessorEditor::drawPedal (juce::Graphics& g) const
     drawScrew (g, { enclosureArea.getRight() - inset, enclosureArea.getY() + inset }, 6.5f, 1.1f);
     drawScrew (g, { enclosureArea.getX() + inset, enclosureArea.getBottom() - inset }, 6.5f, 0.8f);
     drawScrew (g, { enclosureArea.getRight() - inset, enclosureArea.getBottom() - inset }, 6.5f, 0.1f);
-
-    // Jack markings along the top edge, as on a real enclosure.
-    g.setFont (lookAndFeel.getLabelFont (7.5f, true).withExtraKerningFactor (0.3f));
-    g.setColour (colours::goldMuted.withAlpha (0.7f));
-    g.drawText ("OUT", juce::Rectangle<float> (52.0f, 20.0f, 60.0f, 12.0f), juce::Justification::centredLeft, false);
-    g.drawText ("IN", juce::Rectangle<float> (328.0f, 20.0f, 60.0f, 12.0f), juce::Justification::centredRight, false);
 
     // Divider between the gain stage and the tone stack.
     drawRule (g, 44.0f, 206.0f, dividerY, true);

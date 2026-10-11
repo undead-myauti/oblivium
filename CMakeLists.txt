@@ -59,6 +59,7 @@ target_sources(Oblivium PRIVATE
     Source/PluginEditor.cpp
     Source/Parameters.cpp
     Source/DSP/ObliviumEngine.cpp
+    Source/UI/InputDeviceSelector.cpp
     Source/UI/ObliviumLookAndFeel.cpp
     Source/UI/Widgets.cpp)
 

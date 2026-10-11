@@ -59,7 +59,9 @@ cmake --build build -j$(nproc)
 cp -r build/Oblivium_artefacts/Release/VST3/Oblivium.vst3 ~/.vst3/
 ```
 
-Também é gerado um executável **Standalone** (`build/Oblivium_artefacts/Release/Standalone/`) para testar sem DAW.
+Também é gerado um executável **Standalone** (`build/Oblivium_artefacts/Release/Standalone/`) para usar sem DAW. No Standalone, o seletor no topo do pedal escolhe o dispositivo de entrada de áudio (os demais ajustes ficam em *Options → Audio/MIDI Settings*). Por padrão o JUCE começa com a entrada **mutada** para evitar microfonia: desmarque *Mute audio input* em *Options* (de preferência usando fones).
+
+> **Linux:** feche o Reaper (ou outro programa que esteja usando a interface em modo ALSA exclusivo) antes de abrir o Standalone. Com o microfone ocupado, a captura do dispositivo padrão do PipeWire trava e o JUCE 8.0.15 pode fechar o app ao trocar de dispositivo.
 
 ### Opções do CMake
 

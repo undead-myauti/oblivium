@@ -31,6 +31,12 @@ public:
     void drawCornerResizer (juce::Graphics&, int width, int height,
                             bool isMouseOver, bool isMouseDragging) override;
 
+    void drawComboBox (juce::Graphics&, int width, int height, bool isButtonDown,
+                       int buttonX, int buttonY, int buttonW, int buttonH, juce::ComboBox&) override;
+    juce::Font getComboBoxFont (juce::ComboBox&) override;
+    void positionComboBoxText (juce::ComboBox&, juce::Label&) override;
+    juce::Font getPopupMenuFont() override;
+
     juce::Font getDisplayFont (float height) const;
     juce::Font getLabelFont (float height, bool bold) const;
 

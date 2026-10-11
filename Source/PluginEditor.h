@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "UI/InputDeviceSelector.h"
 #include "UI/ObliviumLookAndFeel.h"
 #include "UI/Widgets.h"
 
@@ -32,6 +33,7 @@ private:
     oblivium::ui::LevelMeter inputMeter, outputMeter;
     oblivium::ui::Footswitch footswitch;
     oblivium::ui::Led led;
+    std::unique_ptr<oblivium::ui::InputDeviceSelector> inputDeviceSelector; // standalone only
 
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> sliderAttachments;
     std::unique_ptr<juce::ParameterAttachment> bypassAttachment;

@@ -29,6 +29,13 @@ ObliviumLookAndFeel::ObliviumLookAndFeel()
     labelBold   = juce::Typeface::createSystemTypefaceFor (ObliviumBinary::MontserratBold_ttf, ObliviumBinary::MontserratBold_ttfSize);
 
     setColour (juce::ResizableWindow::backgroundColourId, colours::window);
+
+    setColour (juce::ComboBox::textColourId, colours::goldLight);
+    setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff111113));
+    setColour (juce::PopupMenu::textColourId, juce::Colour (0xffd9d4c7));
+    setColour (juce::PopupMenu::headerTextColourId, colours::goldMuted);
+    setColour (juce::PopupMenu::highlightedBackgroundColourId, colours::gold.withAlpha (0.22f));
+    setColour (juce::PopupMenu::highlightedTextColourId, colours::goldLight);
 }
 
 juce::Font ObliviumLookAndFeel::getDisplayFont (float height) const
@@ -214,5 +221,60 @@ void ObliviumLookAndFeel::drawCornerResizer (juce::Graphics& g, int width, int h
     for (float i = 0.3f; i < 1.0f; i += 0.3f)
         g.drawLine ((float) width - size * i, (float) height - 1.0f,
                     (float) width - 1.0f, (float) height - size * i, 1.0f);
+}
+
+void ObliviumLookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool isButtonDown,
+                                        int, int, int, int, juce::ComboBox& box)
+{
+    const auto bounds = juce::Rectangle<float> ((float) width, (float) height).reduced (0.5f);
+    const auto corner = bounds.getHeight() * 0.5f;
+    const bool hot = box.isMouseOver (true) || isButtonDown || box.isPopupActive();
+
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff0a0a0b), 0.0f, bounds.getY(),
+                                             juce::Colour (0xff161618), 0.0f, bounds.getBottom(), false));
+    g.fillRoundedRectangle (bounds, corner);
+    g.setColour (colours::gold.withAlpha (hot ? 0.8f : 0.4f));
+    g.drawRoundedRectangle (bounds, corner, 1.0f);
+
+    // Microphone glyph on the left.
+    const auto unit = bounds.getHeight();
+    const auto mic = juce::Rectangle<float> (unit * 0.2f, unit * 0.36f).withCentre ({ bounds.getX() + unit * 0.75f, bounds.getCentreY() - unit * 0.08f });
+    g.setColour (colours::gold);
+    g.fillRoundedRectangle (mic, mic.getWidth() * 0.5f);
+
+    juce::Path holder;
+    holder.addCentredArc (mic.getCentreX(), mic.getCentreY() + unit * 0.02f, unit * 0.17f, unit * 0.17f, 0.0f,
+                          juce::MathConstants<float>::halfPi, juce::MathConstants<float>::halfPi * 3.0f, true);
+    holder.startNewSubPath (mic.getCentreX(), mic.getCentreY() + unit * 0.19f);
+    holder.lineTo (mic.getCentreX(), mic.getCentreY() + unit * 0.3f);
+    g.strokePath (holder, juce::PathStrokeType (juce::jmax (1.0f, unit * 0.06f), juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+    // Chevron on the right.
+    const auto arrowCentre = juce::Point<float> (bounds.getRight() - unit * 0.7f, bounds.getCentreY());
+    const auto arrowSize = unit * 0.13f;
+    juce::Path arrow;
+    arrow.startNewSubPath (arrowCentre.translated (-arrowSize, -arrowSize * 0.5f));
+    arrow.lineTo (arrowCentre.translated (0.0f, arrowSize * 0.5f));
+    arrow.lineTo (arrowCentre.translated (arrowSize, -arrowSize * 0.5f));
+    g.setColour (hot ? colours::goldLight : colours::gold);
+    g.strokePath (arrow, juce::PathStrokeType (juce::jmax (1.0f, unit * 0.07f), juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+}
+
+juce::Font ObliviumLookAndFeel::getComboBoxFont (juce::ComboBox& box)
+{
+    return getLabelFont ((float) box.getHeight() * 0.46f, false);
+}
+
+void ObliviumLookAndFeel::positionComboBoxText (juce::ComboBox& box, juce::Label& label)
+{
+    const auto unit = box.getHeight();
+    label.setBounds (box.getLocalBounds().withTrimmedLeft (juce::roundToInt ((float) unit * 1.2f))
+                                         .withTrimmedRight (juce::roundToInt ((float) unit * 1.2f)));
+    label.setFont (getComboBoxFont (box));
+}
+
+juce::Font ObliviumLookAndFeel::getPopupMenuFont()
+{
+    return getLabelFont (14.0f, false);
 }
 }
