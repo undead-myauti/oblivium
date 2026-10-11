@@ -50,7 +50,7 @@ juce_add_plugin(Oblivium
 juce_add_binary_data(ObliviumAssets
     NAMESPACE ObliviumBinary
     SOURCES
-        Resources/Fonts/Cinzel-Bold.ttf
+        Resources/Fonts/CoveredByYourGrace-Regular.ttf
         Resources/Fonts/Montserrat-Medium.ttf
         Resources/Fonts/Montserrat-Bold.ttf)
 

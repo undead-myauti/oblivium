@@ -24,7 +24,7 @@ namespace
 
 ObliviumLookAndFeel::ObliviumLookAndFeel()
 {
-    display     = juce::Typeface::createSystemTypefaceFor (ObliviumBinary::CinzelBold_ttf, ObliviumBinary::CinzelBold_ttfSize);
+    display     = juce::Typeface::createSystemTypefaceFor (ObliviumBinary::CoveredByYourGraceRegular_ttf, ObliviumBinary::CoveredByYourGraceRegular_ttfSize);
     labelMedium = juce::Typeface::createSystemTypefaceFor (ObliviumBinary::MontserratMedium_ttf, ObliviumBinary::MontserratMedium_ttfSize);
     labelBold   = juce::Typeface::createSystemTypefaceFor (ObliviumBinary::MontserratBold_ttf, ObliviumBinary::MontserratBold_ttfSize);
 

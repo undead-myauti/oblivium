@@ -29,7 +29,7 @@ namespace
     constexpr float toneMixSeparatorX = 312.0f;
     constexpr float dividerY = 262.0f;
 
-    const juce::Rectangle<float> logoArea { 20.0f, 398.0f, 400.0f, 66.0f };
+    const juce::Rectangle<float> logoArea { 20.0f, 388.0f, 400.0f, 80.0f };
     constexpr float taglineY = 474.0f;
     const juce::Rectangle<float> ledArea { 205.0f, 497.0f, 30.0f, 30.0f };
     const juce::Rectangle<float> footswitchArea { 172.0f, 534.0f, 96.0f, 96.0f };
@@ -287,7 +287,7 @@ void ObliviumAudioProcessorEditor::drawPedal (juce::Graphics& g) const
 
     // Logo.
     juce::GlyphArrangement glyphs;
-    glyphs.addFittedText (lookAndFeel.getDisplayFont (54.0f).withExtraKerningFactor (0.06f), "OBLIVIUM",
+    glyphs.addFittedText (lookAndFeel.getDisplayFont (86.0f).withExtraKerningFactor (0.04f), "OBLIVIUM",
                           logoArea.getX(), logoArea.getY(), logoArea.getWidth(), logoArea.getHeight(),
                           juce::Justification::centred, 1);
     juce::Path logo;

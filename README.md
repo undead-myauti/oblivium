@@ -81,5 +81,5 @@ O workflow `.github/workflows/build.yml` compila Linux e Windows a cada push e p
 ## Licenças
 
 - Código do Oblivium: MIT (ver `LICENSE`).
-- Fontes Cinzel e Montserrat: SIL Open Font License (ver `Resources/Fonts/`).
+- Fontes Covered By Your Grace e Montserrat: SIL Open Font License (ver `Resources/Fonts/`).
 - JUCE: AGPLv3 ou licença comercial do JUCE. Para distribuir binários fechados é preciso uma licença do JUCE (há um plano gratuito para receita anual pequena).
