@@ -75,14 +75,25 @@ bool Footswitch::hitTest (int x, int y)
 void Footswitch::paintButton (juce::Graphics& g, bool highlighted, bool down)
 {
     const auto bounds = getLocalBounds().toFloat();
-    const auto centre = bounds.getCentre();
-    const auto radius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f - 2.0f;
+    const auto size = juce::jmin (bounds.getWidth(), bounds.getHeight());
+    const auto radius = size * 0.44f;
+    const auto thickness = radius * 0.1f;
+    const auto centre = bounds.getCentre().translated (0.0f, -thickness * 0.5f);
 
-    // Hex nut.
+    // Hex nut: shadows on the stone, then its flank, then its top face.
+    ObliviumLookAndFeel::fillRadialShadow (g, centre.translated (0.0f, thickness + radius * 0.12f), radius * 1.12f, 0.6f, 0.55f);
+    ObliviumLookAndFeel::fillRadialShadow (g, centre.translated (0.0f, thickness), radius * 0.98f, 0.9f, 0.85f);
+
     juce::Path nut;
     nut.addPolygon (centre, 6, radius, juce::MathConstants<float>::pi / 6.0f);
-    juce::DropShadow (juce::Colours::black.withAlpha (0.9f), juce::roundToInt (radius * 0.3f),
-                      { 0, juce::roundToInt (radius * 0.1f) }).drawForPath (g, nut);
+
+    juce::Path flank (nut);
+    flank.applyTransform (juce::AffineTransform::translation (0.0f, thickness));
+    flank.addRectangle (centre.x - radius * 0.87f, centre.y, radius * 1.74f, thickness);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1c1c1f), centre.x - radius, 0.0f,
+                                             juce::Colour (0xff040405), centre.x + radius, 0.0f, false));
+    g.fillPath (flank);
+
     g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3a3a3f), centre.x - radius, centre.y - radius,
                                              juce::Colour (0xff09090a), centre.x + radius, centre.y + radius, false));
     g.fillPath (nut);
@@ -189,9 +200,15 @@ void LevelMeter::paint (juce::Graphics& g)
     const auto bounds = getLocalBounds().toFloat();
     const auto corner = bounds.getWidth() * 0.35f;
 
-    g.setColour (juce::Colour (0xff050506));
+    // A slot cut into the stone: the lower lip catches the light, the upper wall casts a shadow inside.
+    g.setColour (juce::Colours::white.withAlpha (0.08f));
+    g.fillRoundedRectangle (bounds.translated (0.0f, 1.0f), corner);
+    g.setColour (juce::Colour (0xff030304));
     g.fillRoundedRectangle (bounds, corner);
-    g.setColour (colours::gold.withAlpha (0.28f));
+    g.setGradientFill (juce::ColourGradient (juce::Colours::black, 0.0f, bounds.getY(),
+                                             juce::Colours::transparentBlack, 0.0f, bounds.getY() + bounds.getWidth() * 0.8f, false));
+    g.fillRoundedRectangle (bounds, corner);
+    g.setColour (colours::gold.withAlpha (0.22f));
     g.drawRoundedRectangle (bounds.reduced (0.5f), corner, 0.8f);
 
     auto inner = bounds.reduced (juce::jmax (1.5f, bounds.getWidth() * 0.22f));

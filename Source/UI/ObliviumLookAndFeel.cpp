@@ -20,6 +20,25 @@ namespace
         p.addEllipse (centre.x - radius, centre.y - radius, radius * 2.0f, radius * 2.0f);
         return p;
     }
+
+    /** Highlight along the top of a round edge, fading out towards the sides. */
+    void strokeUpperRim (juce::Graphics& g, juce::Point<float> centre, float radius, juce::Colour colour, float thickness)
+    {
+        constexpr int pieces = 12;
+        constexpr float span = juce::MathConstants<float>::pi * 0.42f;
+
+        for (int i = 0; i < pieces; ++i)
+        {
+            const auto from = -span + 2.0f * span * (float) i / (float) pieces;
+            const auto to = from + 2.0f * span / (float) pieces;
+            const auto middle = (from + to) * 0.5f;
+
+            juce::Path piece;
+            piece.addCentredArc (centre.x, centre.y, radius, radius, 0.0f, from, to, true);
+            g.setColour (colour.withMultipliedAlpha (std::cos (middle / span * juce::MathConstants<float>::halfPi)));
+            g.strokePath (piece, juce::PathStrokeType (thickness));
+        }
+    }
 }
 
 ObliviumLookAndFeel::ObliviumLookAndFeel()
@@ -46,6 +65,16 @@ juce::Font ObliviumLookAndFeel::getDisplayFont (float height) const
 juce::Font ObliviumLookAndFeel::getLabelFont (float height, bool bold) const
 {
     return juce::Font (juce::FontOptions (bold ? labelBold : labelMedium).withHeight (height));
+}
+
+void ObliviumLookAndFeel::fillRadialShadow (juce::Graphics& g, juce::Point<float> centre, float radius,
+                                            float alpha, float solidFraction)
+{
+    juce::ColourGradient shadow (juce::Colours::black.withAlpha (alpha), centre.x, centre.y,
+                                 juce::Colours::transparentBlack, centre.x + radius, centre.y, true);
+    shadow.addColour (solidFraction, juce::Colours::black.withAlpha (alpha));
+    g.setGradientFill (shadow);
+    g.fillEllipse (juce::Rectangle<float> (radius * 2.0f, radius * 2.0f).withCentre (centre));
 }
 
 juce::ColourGradient ObliviumLookAndFeel::goldGradient (juce::Rectangle<float> area)
@@ -84,15 +113,37 @@ void ObliviumLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int
         }
     }
 
-    // Value ring.
+    // Scale engraved into the stone: a dark groove whose lower lip catches the light,
+    // with the value inlaid in gold.
     const auto ringRadius = radius * (hero ? 0.85f : 0.9f);
-    const auto ringWidth = radius * (hero ? 0.045f : 0.075f);
-    const juce::PathStrokeType ringStroke (ringWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded);
+    const auto ringWidth = radius * (hero ? 0.05f : 0.08f);
+    const auto arc = [&centre, ringRadius] (float from, float to)
+    {
+        juce::Path p;
+        p.addCentredArc (centre.x, centre.y, ringRadius, ringRadius, 0.0f, from, to, true);
+        return p;
+    };
+    const auto stroke = [] (float strokeWidth)
+    {
+        return juce::PathStrokeType (strokeWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded);
+    };
 
-    juce::Path track;
-    track.addCentredArc (centre.x, centre.y, ringRadius, ringRadius, 0.0f, startAngle, endAngle, true);
-    g.setColour (colours::track);
-    g.strokePath (track, ringStroke);
+    // The knob is a cylinder standing on the pedal: its base sits lower than its top face,
+    // so a strip of the side wall shows underneath, and that is what gives it height.
+    const auto bodyRadius = radius * (hero ? 0.72f : 0.68f);
+    const auto wallHeight = bodyRadius * (hero ? 0.17f : 0.15f);
+    const auto base = centre.translated (0.0f, wallHeight);
+
+    // Shadows go down first so the engraved scale stays readable on top of them:
+    // a soft one cast downwards by the light above, then the tight contact shadow at the base.
+    fillRadialShadow (g, base.translated (bodyRadius * 0.03f, bodyRadius * 0.16f), bodyRadius * 1.22f, 0.6f, 0.55f);
+    fillRadialShadow (g, base, bodyRadius * 1.14f, 0.9f, 0.84f);
+
+    const auto track = arc (startAngle, endAngle);
+    g.setColour (juce::Colours::white.withAlpha (0.08f));
+    g.strokePath (track, stroke (ringWidth), juce::AffineTransform::translation (0.0f, ringWidth * 0.4f));
+    g.setColour (juce::Colour (0xff020203));
+    g.strokePath (track, stroke (ringWidth));
 
     const bool bipolar = slider.getMinimum() < 0.0 && slider.getMaximum() > 0.0;
     const auto originAngle = bipolar
@@ -101,39 +152,65 @@ void ObliviumLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int
 
     if (std::abs (angle - originAngle) > 0.001f)
     {
-        juce::Path value;
-        value.addCentredArc (centre.x, centre.y, ringRadius, ringRadius, 0.0f,
-                             juce::jmin (originAngle, angle), juce::jmax (originAngle, angle), true);
+        const auto value = arc (juce::jmin (originAngle, angle), juce::jmax (originAngle, angle));
 
-        for (int i = 3; i > 0; --i)
-        {
-            g.setColour (colours::gold.withAlpha (active ? 0.09f : 0.06f));
-            g.strokePath (value, juce::PathStrokeType (ringWidth * (1.0f + (float) i * 1.1f),
-                                                       juce::PathStrokeType::curved,
-                                                       juce::PathStrokeType::rounded));
-        }
-
+        g.setColour (colours::gold.withAlpha (active ? 0.12f : 0.05f));
+        g.strokePath (value, stroke (ringWidth * 2.2f));
         g.setGradientFill (goldGradient (bounds));
-        g.strokePath (value, ringStroke);
+        g.strokePath (value, stroke (ringWidth * 0.6f));
     }
     else if (bipolar)
     {
         g.setColour (colours::gold);
-        g.fillEllipse (juce::Rectangle<float> (ringWidth, ringWidth).withCentre (centre.getPointOnCircumference (ringRadius, originAngle)));
+        g.fillEllipse (juce::Rectangle<float> (ringWidth * 0.6f, ringWidth * 0.6f)
+                           .withCentre (centre.getPointOnCircumference (ringRadius, originAngle)));
     }
 
-    // Knurled skirt, rotating with the knob.
-    const auto bodyRadius = radius * (hero ? 0.72f : 0.68f);
-    const auto body = circle (centre, bodyRadius);
+    // Brass washer of the pot, seated on the stone.
+    const auto washerRadius = bodyRadius * 1.09f;
+    const auto washer = circle (base, washerRadius);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff5a4719), base.x, base.y - washerRadius,
+                                             juce::Colour (0xff140f05), base.x, base.y + washerRadius, false));
+    g.fillPath (washer);
+    g.setColour (juce::Colours::black.withAlpha (0.8f));
+    g.strokePath (washer, juce::PathStrokeType (0.8f));
+    strokeUpperRim (g, base, washerRadius - 0.6f, colours::goldLight.withAlpha (0.35f), 0.8f);
 
-    juce::DropShadow (juce::Colours::black.withAlpha (0.85f), juce::roundToInt (bodyRadius * 0.45f),
-                      { 0, juce::roundToInt (bodyRadius * 0.14f) }).drawForPath (g, body);
+    // Side wall, shaded across like a lit cylinder, with the knurling running down it.
+    juce::Path wall;
+    wall.addEllipse (base.x - bodyRadius, base.y - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f);
+    wall.addRectangle (centre.x - bodyRadius, centre.y, bodyRadius * 2.0f, wallHeight);
 
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3b3b40), centre.x, centre.y - bodyRadius,
-                                             juce::Colour (0xff060607), centre.x, centre.y + bodyRadius, false));
-    g.fillPath (body);
+    juce::ColourGradient wallShade (juce::Colour (0xff050506), centre.x - bodyRadius, 0.0f,
+                                    juce::Colour (0xff040405), centre.x + bodyRadius, 0.0f, false);
+    wallShade.addColour (0.3, juce::Colour (0xff2c2c31));
+    wallShade.addColour (0.55, juce::Colour (0xff17171a));
+    g.setGradientFill (wallShade);
+    g.fillPath (wall);
 
     const int ridges = hero ? 64 : 40;
+    const auto ridgeWidth = juce::jmax (0.6f, bodyRadius * 0.025f);
+
+    for (int i = 0; i < ridges; ++i)
+    {
+        const auto a = angle + (float) i * twoPi / (float) ridges;
+        const auto edge = centre.getPointOnCircumference (bodyRadius * 0.995f, a);
+        const auto across = (edge.x - centre.x) / bodyRadius; // -1 (left) .. 1 (right)
+
+        if (edge.y <= centre.y || std::abs (across) > 0.96f)
+            continue;
+
+        const auto lit = juce::jmax (0.0f, 1.0f - std::abs (across + 0.3f) * 1.3f);
+        g.setColour (juce::Colours::white.withAlpha (0.03f + 0.14f * lit));
+        g.drawLine ({ edge, edge.translated (0.0f, wallHeight) }, ridgeWidth);
+    }
+
+    // Top face: knurled skirt, rotating with the knob.
+    const auto body = circle (centre, bodyRadius);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3b3b40), centre.x, centre.y - bodyRadius,
+                                             juce::Colour (0xff0a0a0b), centre.x, centre.y + bodyRadius, false));
+    g.fillPath (body);
+
     for (int i = 0; i < ridges; ++i)
     {
         const auto a = angle + (float) i * twoPi / (float) ridges;
@@ -141,11 +218,13 @@ void ObliviumLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int
         g.setColour (juce::Colours::white.withAlpha (0.02f + 0.13f * lit * lit));
         g.drawLine ({ centre.getPointOnCircumference (bodyRadius * 0.84f, a),
                       centre.getPointOnCircumference (bodyRadius * 0.985f, a) },
-                    juce::jmax (0.6f, bodyRadius * 0.025f));
+                    ridgeWidth);
     }
 
-    g.setColour (juce::Colours::black.withAlpha (0.7f));
+    // Edge of the top face: a crisp highlight where it faces the light, dark below.
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
     g.drawEllipse (centre.x - bodyRadius, centre.y - bodyRadius, bodyRadius * 2.0f, bodyRadius * 2.0f, 1.0f);
+    strokeUpperRim (g, centre, bodyRadius - 0.7f, juce::Colours::white.withAlpha (0.22f), 0.9f);
 
     // Cap.
     const auto capRadius = bodyRadius * 0.8f;

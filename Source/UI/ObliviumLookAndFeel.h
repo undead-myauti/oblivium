@@ -15,7 +15,6 @@ namespace colours
     inline const juce::Colour enclosureTop    { 0xff1e1e21 };
     inline const juce::Colour enclosureBottom { 0xff0b0b0d };
     inline const juce::Colour window          { 0xff050506 };
-    inline const juce::Colour track           { 0xff2a2a2e };
     inline const juce::Colour textMuted       { 0xff86868c };
 }
 
@@ -39,6 +38,10 @@ public:
 
     juce::Font getDisplayFont (float height) const;
     juce::Font getLabelFont (float height, bool bold) const;
+
+    /** Round shadow on the pedal surface: solid up to `solidFraction` of the radius, then fading out. */
+    static void fillRadialShadow (juce::Graphics&, juce::Point<float> centre, float radius,
+                                  float alpha, float solidFraction);
 
     /** Brushed-gold fill running top to bottom across the given area. */
     static juce::ColourGradient goldGradient (juce::Rectangle<float> area);
