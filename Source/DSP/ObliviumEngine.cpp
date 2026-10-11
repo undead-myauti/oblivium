@@ -87,6 +87,7 @@ void ObliviumEngine::reset()
 
     dryDelay.reset();
     needsSnap = true;
+    lastInputPeak = 0.0f;
 }
 
 void ObliviumEngine::setTargets (const EngineParameters& p, bool snapToTargets)
@@ -175,6 +176,9 @@ void ObliviumEngine::process (juce::dsp::AudioBlock<float> block, const EnginePa
     dryDelay.process (juce::dsp::ProcessContextReplacing<float> (dry));
 
     wet.multiplyBy (inputGain);
+
+    const auto inputRange = wet.findMinAndMax();
+    lastInputPeak = juce::jmax (-inputRange.getStart(), inputRange.getEnd());
 
     juce::dsp::ProcessContextReplacing<float> context (wet);
     preHighPass.process (context);

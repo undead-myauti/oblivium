@@ -4,6 +4,15 @@
 
 namespace ids = oblivium::params;
 
+namespace
+{
+    void accumulatePeak (std::atomic<float>& peak, float value) noexcept
+    {
+        auto current = peak.load (std::memory_order_relaxed);
+        while (value > current && ! peak.compare_exchange_weak (current, value, std::memory_order_relaxed)) {}
+    }
+}
+
 ObliviumAudioProcessor::ObliviumAudioProcessor()
     : AudioProcessor (BusesProperties()
                           .withInput ("Input", juce::AudioChannelSet::stereo(), true)
@@ -26,7 +35,8 @@ void ObliviumAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     maxBlockSize = juce::jmax (1, samplesPerBlock);
     engine.prepare (sampleRate, maxBlockSize, juce::jmax (1, getTotalNumInputChannels()));
     setLatencySamples (engine.getLatencyInSamples());
-    outputLevel.store (0.0f);
+    inputPeak.store (0.0f);
+    outputPeak.store (0.0f);
 }
 
 void ObliviumAudioProcessor::releaseResources()
@@ -76,9 +86,12 @@ void ObliviumAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
 
     // Some hosts send blocks larger than announced in prepareToPlay.
     for (size_t start = 0; start < (size_t) numSamples; start += (size_t) maxBlockSize)
+    {
         engine.process (block.getSubBlock (start, juce::jmin ((size_t) maxBlockSize, (size_t) numSamples - start)), params);
+        accumulatePeak (inputPeak, engine.getLastInputPeak());
+    }
 
-    outputLevel.store (buffer.getMagnitude (0, numSamples), std::memory_order_relaxed);
+    accumulatePeak (outputPeak, buffer.getMagnitude (0, numSamples));
 }
 
 juce::AudioProcessorEditor* ObliviumAudioProcessor::createEditor()

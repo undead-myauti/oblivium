@@ -29,6 +29,7 @@ private:
 
     oblivium::ui::LabelledKnob input { "INPUT" }, drive { "DRIVE", true }, output { "OUTPUT" };
     oblivium::ui::LabelledKnob bass { "BASS" }, mid { "MID" }, treble { "TREBLE" }, mix { "MIX" };
+    oblivium::ui::LevelMeter inputMeter, outputMeter;
     oblivium::ui::Footswitch footswitch;
     oblivium::ui::Led led;
 
@@ -36,6 +37,7 @@ private:
     std::unique_ptr<juce::ParameterAttachment> bypassAttachment;
     bool engaged = true;
     float displayedLevel = 0.0f;
+    double lastTimerMs = 0.0;
 
     juce::Image background;
     float backgroundPixelScale = 0.0f;

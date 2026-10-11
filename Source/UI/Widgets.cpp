@@ -125,6 +125,104 @@ void Footswitch::paintButton (juce::Graphics& g, bool highlighted, bool down)
 }
 
 //==============================================================================
+namespace
+{
+    constexpr float meterFallDbPerSecond = 26.0f;
+    constexpr float meterHoldSeconds = 1.0f;
+    constexpr float clipLatchSeconds = 2.0f;
+
+    float segmentFloorDb (int index)
+    {
+        return LevelMeter::floorDb * (1.0f - (float) index / (float) LevelMeter::segments);
+    }
+}
+
+int LevelMeter::litSegments() const noexcept
+{
+    int lit = 0;
+    while (lit < segments && levelDb > segmentFloorDb (lit))
+        ++lit;
+    return lit;
+}
+
+int LevelMeter::holdSegment() const noexcept
+{
+    int index = -1;
+    while (index + 1 < segments && holdDb > segmentFloorDb (index + 1))
+        ++index;
+    return index;
+}
+
+void LevelMeter::pushPeak (float peak, float elapsedSeconds)
+{
+    const auto previous = std::tuple { litSegments(), holdSegment(), clipSecondsLeft > 0.0f };
+    const auto peakDb = peak > 0.0f ? juce::jmax (floorDb - 1.0f, 20.0f * std::log10 (peak)) : floorDb - 1.0f;
+
+    levelDb = juce::jmax (peakDb, levelDb - meterFallDbPerSecond * elapsedSeconds);
+
+    if (peakDb >= holdDb)
+    {
+        holdDb = peakDb;
+        holdSecondsLeft = meterHoldSeconds;
+    }
+    else if ((holdSecondsLeft -= elapsedSeconds) <= 0.0f)
+    {
+        holdDb = juce::jmax (levelDb, holdDb - meterFallDbPerSecond * elapsedSeconds);
+    }
+
+    clipSecondsLeft = peak >= 1.0f ? clipLatchSeconds : juce::jmax (0.0f, clipSecondsLeft - elapsedSeconds);
+
+    if (previous != std::tuple { litSegments(), holdSegment(), clipSecondsLeft > 0.0f })
+        repaint();
+}
+
+void LevelMeter::mouseDown (const juce::MouseEvent&)
+{
+    holdDb = levelDb;
+    holdSecondsLeft = 0.0f;
+    clipSecondsLeft = 0.0f;
+    repaint();
+}
+
+void LevelMeter::paint (juce::Graphics& g)
+{
+    const auto bounds = getLocalBounds().toFloat();
+    const auto corner = bounds.getWidth() * 0.35f;
+
+    g.setColour (juce::Colour (0xff050506));
+    g.fillRoundedRectangle (bounds, corner);
+    g.setColour (colours::gold.withAlpha (0.28f));
+    g.drawRoundedRectangle (bounds.reduced (0.5f), corner, 0.8f);
+
+    auto inner = bounds.reduced (juce::jmax (1.5f, bounds.getWidth() * 0.22f));
+    const auto gap = juce::jmax (1.0f, inner.getHeight() * 0.012f);
+    const auto segmentHeight = (inner.getHeight() - gap * (float) segments) / (float) (segments + 1);
+
+    const auto colourFor = [] (int index)
+    {
+        if (index >= segments - 1) return juce::Colour (0xffffa53d); // last 3 dB before clipping
+        if (index >= segments - 4) return colours::goldLight;        // -12 .. -3 dB
+        return colours::gold;
+    };
+
+    const auto lit = litSegments();
+    const auto hold = holdSegment();
+
+    for (int i = 0; i <= segments; ++i)
+    {
+        const auto segment = inner.removeFromBottom (segmentHeight);
+        inner.removeFromBottom (gap);
+
+        const bool isClip = i == segments;
+        const auto colour = isClip ? juce::Colour (0xffe8432e) : colourFor (i);
+        const bool on = isClip ? clipSecondsLeft > 0.0f : (i < lit || i == hold);
+
+        g.setColour (on ? colour : colour.withAlpha (0.13f));
+        g.fillRoundedRectangle (segment, segmentHeight * 0.25f);
+    }
+}
+
+//==============================================================================
 void Led::setOn (bool shouldBeOn)
 {
     if (on != shouldBeOn)

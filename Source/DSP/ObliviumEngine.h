@@ -31,6 +31,9 @@ public:
 
     int getLatencyInSamples() const noexcept { return latencySamples; }
 
+    /** Peak level after the input gain (what hits the clipper) in the last processed block. */
+    float getLastInputPeak() const noexcept { return lastInputPeak; }
+
     static constexpr float maxDriveDb = 40.0f;
 
 private:
@@ -46,6 +49,7 @@ private:
     int numChannels = 0;
     int latencySamples = 0;
     bool needsSnap = true;
+    float lastInputPeak = 0.0f;
 
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
 

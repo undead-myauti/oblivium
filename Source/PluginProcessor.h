@@ -36,8 +36,10 @@ public:
 
     juce::AudioProcessorParameter* getBypassParameter() const override { return bypassParameter; }
 
-    /** Peak output level of the last processed block, for the editor's LED. */
-    float getOutputLevel() const noexcept { return outputLevel.load (std::memory_order_relaxed); }
+    /** Peak levels (linear) since the previous call, for the editor's meters.
+        Reading resets them, so the editor sees every peak regardless of its refresh rate. */
+    float popInputPeak() noexcept  { return inputPeak.exchange (0.0f, std::memory_order_relaxed); }
+    float popOutputPeak() noexcept { return outputPeak.exchange (0.0f, std::memory_order_relaxed); }
 
     juce::AudioProcessorValueTreeState parameters;
 
@@ -57,7 +59,7 @@ private:
     std::atomic<float>* bypass = nullptr;
     juce::AudioProcessorParameter* bypassParameter = nullptr;
 
-    std::atomic<float> outputLevel { 0.0f };
+    std::atomic<float> inputPeak { 0.0f }, outputPeak { 0.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ObliviumAudioProcessor)
 };

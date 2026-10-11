@@ -14,6 +14,10 @@ namespace
     const juce::Rectangle<float> inputArea  { 39.0f, 132.0f, 78.0f, 108.0f };
     const juce::Rectangle<float> outputArea { 323.0f, 132.0f, 78.0f, 108.0f };
 
+    // Meters sit on the inner side of the input / output knobs, level with the knob.
+    const juce::Rectangle<float> inputMeterArea  { 121.0f, 134.0f, 10.0f, 96.0f };
+    const juce::Rectangle<float> outputMeterArea { 309.0f, 134.0f, 10.0f, 96.0f };
+
     constexpr float toneTop = 282.0f, toneKnob = 62.0f, toneCaption = 30.0f;
     constexpr float bassX = 72.0f, midX = 164.0f, trebleX = 256.0f, mixX = 368.0f;
     constexpr float toneMixSeparatorX = 312.0f;
@@ -73,6 +77,11 @@ ObliviumAudioProcessorEditor::ObliviumAudioProcessorEditor (ObliviumAudioProcess
     attach (treble, ids::treble);
     attach (mix, ids::mix);
 
+    inputMeter.setTitle ("Input level");
+    outputMeter.setTitle ("Output level");
+    addAndMakeVisible (inputMeter);
+    addAndMakeVisible (outputMeter);
+
     footswitch.onClick = [this] { bypassAttachment->setValueAsCompleteGesture (engaged ? 1.0f : 0.0f); };
     addAndMakeVisible (footswitch);
     addAndMakeVisible (led);
@@ -117,8 +126,16 @@ void ObliviumAudioProcessorEditor::setEngaged (bool shouldBeEngaged)
 
 void ObliviumAudioProcessorEditor::timerCallback()
 {
-    const auto level = audioProcessor.getOutputLevel();
-    displayedLevel = juce::jmax (level, displayedLevel * 0.82f);
+    const auto now = juce::Time::getMillisecondCounterHiRes();
+    const auto elapsed = lastTimerMs > 0.0 ? (float) juce::jlimit (0.0, 0.25, (now - lastTimerMs) / 1000.0) : 0.0f;
+    lastTimerMs = now;
+
+    const auto inputPeak = audioProcessor.popInputPeak();
+    const auto outputPeak = audioProcessor.popOutputPeak();
+    inputMeter.pushPeak (inputPeak, elapsed);
+    outputMeter.pushPeak (outputPeak, elapsed);
+
+    displayedLevel = juce::jmax (outputPeak, displayedLevel * 0.82f);
     led.setLevel (std::sqrt (juce::jlimit (0.0f, 1.0f, displayedLevel)));
 }
 
@@ -137,6 +154,8 @@ void ObliviumAudioProcessorEditor::resized()
     place (mid, toneKnobArea (midX));
     place (treble, toneKnobArea (trebleX));
     place (mix, toneKnobArea (mixX));
+    place (inputMeter, inputMeterArea);
+    place (outputMeter, outputMeterArea);
     place (led, ledArea);
     place (footswitch, footswitchArea);
 

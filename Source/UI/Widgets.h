@@ -36,6 +36,28 @@ public:
     bool hitTest (int x, int y) override;
 };
 
+/** Vertical segmented peak meter with peak hold and a latching clip segment on top.
+    Clicking it clears the hold and the clip indicator. */
+class LevelMeter final : public juce::Component
+{
+public:
+    /** Feed the highest linear peak since the previous call and the time that has passed. */
+    void pushPeak (float peak, float elapsedSeconds);
+
+    void paint (juce::Graphics&) override;
+    void mouseDown (const juce::MouseEvent&) override;
+
+    static constexpr float floorDb = -45.0f;
+    static constexpr int segments = 15; // 3 dB each, plus the clip segment
+
+private:
+    int litSegments() const noexcept;
+    int holdSegment() const noexcept;
+
+    float levelDb = floorDb, holdDb = floorDb;
+    float holdSecondsLeft = 0.0f, clipSecondsLeft = 0.0f;
+};
+
 /** Status LED; brightness follows the signal while the effect is engaged. */
 class Led final : public juce::Component
 {
